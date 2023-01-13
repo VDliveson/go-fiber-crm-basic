@@ -3,8 +3,8 @@ package lead
 import (
 	"github.com/VDliveson/go-fiber-crm-basic/database"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/gorm"
-	"gorm.io/driver/sqlite"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 type Lead struct {
@@ -15,41 +15,65 @@ type Lead struct {
 	Phone   int    `json:"phone"`
 }
 
-func GetLeads(c *fiber.Ctx) {
-	db := database.DBConn
+func GetLeads(c *fiber.Ctx) error {
+	db := database.DBconn
 	var leads []Lead
 	db.Find(&leads)
 	c.JSON(leads)
+	return nil
 }
 
-func GetLead(c *fiber.Ctx) {
+func GetLead(c *fiber.Ctx) error {
 	id := c.Params(":id")
-	db := database.DBConn
+	db := database.DBconn
 	var lead Lead
 	db.Find(&lead, id)
 	c.JSON(lead)
+	return nil
 }
 
-func NewLead(c *fiber.Ctx) {
-	db := database.DBConn
+func NewLead(c *fiber.Ctx) error{
+	db := database.DBconn
 	lead := new(Lead)
-	if err := db.Create(&lead); err != nil {
-		c.Status(503).Send(err)
-		return
+	if err := c.BodyParser(lead); err != nil {
+		c.Status(503).Send([]byte(err.Error()))
+		return nil
 	}
 	db.Create(&lead)
 	c.JSON(lead)
+	return nil
 }
 
-func DeleteLead(c *fiber.Ctx) {
+func DeleteLead(c *fiber.Ctx) error{
 	id := c.Params(":id")
-	db := database.DBConn
+	db := database.DBconn
 	var lead Lead
 	db.First(&lead, id)
-	if lead.Name != "" {
-		c.Status(500).Send("No lead found with ID")
-		return
+	if lead.Name == "" {
+		c.Status(500).SendString("No lead found with ID")
+		return nil
 	}
 	db.Delete(&lead)
-	c.Send("Lead successfully deleted")
+	c.SendString("Lead successfully deleted")
+	return nil
 }
+
+// func UpdateLead(c *fiber.Ctx) error{
+// 	id:= c.Params(":id")
+// 	db := database.DBconn
+// 	var lead Lead
+
+// 	db.First(&lead, id)
+// 	if lead.Name == "" {
+// 		c.Status(500).SendString("No lead found with ID")
+// 		return nil
+// 	}
+
+// 	newlead := new(Lead)
+// 	if err := c.BodyParser(newlead); err != nil {
+// 		c.Status(503).Send([]byte(err.Error()))
+// 		return nil
+// 	}
+
+// 	db.Update(&newlead, lead)
+// }
